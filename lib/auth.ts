@@ -1,17 +1,92 @@
 import { supabase } from "./supabaseClient";
 
-export async function signUp(email: string, password: string) {
-  return await supabase.auth.signUp({ email, password });
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  user?: any;
 }
 
-export async function signIn(email: string, password: string) {
-  return await supabase.auth.signInWithPassword({ email, password });
+// Sign up function
+export async function signUp(
+  email: string,
+  password: string
+): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, user: data.user };
+  } catch (error) {
+    return { success: false, error: "An error occured" };
+  }
 }
 
-export async function signOut() {
-  return await supabase.auth.signOut();
+// Sign in function
+export async function signIn(
+  email: string,
+  password: string
+): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, user: data.user };
+  } catch (error) {
+    return { success: false, error: "An error occured while logging in." };
+  }
 }
 
-export async function getSession() {
-  return await supabase.auth.getSession();
+// Sign out function
+export async function signOut(): Promise<AuthResult> {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "An error occured while logging out." };
+  }
+}
+
+// User session
+export async function getUser() {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error) {
+      console.error("User fetch error:", error);
+      return null;
+    }
+    return user;
+  } catch (error) {
+    console.error("Auth error:", error);
+    return null;
+  }
+}
+
+// Auth state changes
+export function onAuthStateChange(callback: (user: any) => void) {
+  return supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user || null);
+  });
 }
