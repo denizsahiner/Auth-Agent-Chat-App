@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import MessageBubble from "./MessageBubble";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 interface Message {
   id: string;
@@ -12,24 +11,26 @@ interface Message {
   role: "user" | "assistant";
   timestamp: Date;
 }
+
 export default function ChatBox() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const [inputMessage, setInputMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     const result = await signOut();
     if (result.success) {
-      router.push("/");
+      router.push("/signin");
     }
   };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -44,10 +45,125 @@ export default function ChatBox() {
       role: "user",
       timestamp: new Date(),
     };
+
+    // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
+    const messageContent = inputMessage.trim();
     setInputMessage("");
     setIsLoading(true);
-    setIsTyping(true);
+    setError(null);
+
+    try {
+      // Call API endpoint
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body reader");
+      }
+
+      const decoder = new TextDecoder();
+      let aiMessageContent = "";
+      const aiMessageId = (Date.now() + 1).toString();
+
+      // Add empty AI message
+      setMessages(prev => [...prev, {
+        id: aiMessageId,
+        content: "",
+        role: "assistant",
+        timestamp: new Date(),
+      }]);
+
+      // Check content-type to determine parsing strategy
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('text/event-stream')) {
+        // SSE format parsing
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === '[DONE]') break;
+              
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.choices?.[0]?.delta?.content) {
+                  const newContent = data.choices[0].delta.content;
+                  aiMessageContent += newContent;
+                  
+                  setMessages(prev => 
+                    prev.map(msg => 
+                      msg.id === aiMessageId 
+                        ? { ...msg, content: aiMessageContent }
+                        : msg
+                    )
+                  );
+                }
+              } catch (e) {
+                // Ignore parse errors
+              }
+            }
+          }
+        }
+      } else {
+        // Raw text streaming (current situation)
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          aiMessageContent += chunk;
+          
+          // Update AI message with new content
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === aiMessageId 
+                ? { ...msg, content: aiMessageContent }
+                : msg
+            )
+          );
+        }
+      }
+
+    } catch (error) {
+      console.error("Chat error:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
+      
+      // Remove user message on error and restore input
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      setInputMessage(messageContent);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e as any);
+    }
   };
 
   return (
@@ -71,8 +187,8 @@ export default function ChatBox() {
           messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))
-        )}
-        {isTyping && (
+        )}        
+        {isLoading && (
           <div className="flex justify-start">
             <div className="bg-[#4A4855] text-[#D3DAD9] rounded-lg px-4 py-2 max-w-xs">
               <div className="flex space-x-1">
@@ -89,6 +205,21 @@ export default function ChatBox() {
             </div>
           </div>
         )}
+
+        {error && (
+          <div className="bg-red-900/30 border border-red-700/50 rounded-md p-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-red-300">Error: {error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
       <div className="p-4">
@@ -97,6 +228,7 @@ export default function ChatBox() {
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Type your message..."
             disabled={isLoading}
             className="flex-1 px-4 py-2 bg-[#44444E] border border-[#4A4855] text-[#D3DAD9] rounded-3xl placeholder-[#8B8994]"

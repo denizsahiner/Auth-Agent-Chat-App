@@ -1,10 +1,13 @@
-import { supabase } from "./supabaseClient";
+import { createClient } from './supabase/client'
 
 export interface AuthResult {
   success: boolean;
   error?: string;
   user?: any;
 }
+
+// Get browser client
+const supabase = createClient()
 
 // Sign up function
 export async function signUp(
