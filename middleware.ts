@@ -12,7 +12,7 @@ export async function middleware(req: NextRequest) {
 
 
   if (req.nextUrl.pathname.startsWith('/chat') && !session) {
-    return NextResponse.redirect(new URL('/auth/signin', req.url))
+    return NextResponse.redirect(new URL('/signin', req.url))
   }
 
  

@@ -32,7 +32,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       setLoading(false);
       return;
     }
-    
+
     if (!isLogin && password !== confirmPassword) {
       setError("Passwords must be same");
       setLoading(false);
@@ -45,10 +45,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    if (!isLogin && password.length<6){
-        setError("Password must contain at least 6 characters");
-        setLoading(false);
-        return;
+    if (!isLogin && password.length < 6) {
+      setError("Password must contain at least 6 characters");
+      setLoading(false);
+      return;
     }
 
     try {
@@ -76,8 +76,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#37353E] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
-      <div className="max-w-md w-full bg-[#2A2831] border border-[#4A4855] rounded-xl shadow-lg p-8 space-y-8">
+    <div className="min-h-screen  flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
+      <div className="max-w-md w-full bg-[#37353E] border border-[#28272c] rounded-xl shadow-lg p-8 space-y-8">
         <div>
           <h2 className=" mt-6 text-center text-3xl font-bold tracking-tight text-[#D3DAD9]">
             {isLogin ? "Sign in" : "Create new account"}
@@ -86,14 +86,20 @@ export default function AuthForm({ mode }: AuthFormProps) {
             {isLogin ? (
               <>
                 Don't you have an account?{" "}
-                <Link href="/signup" className="font-medium text-[#739EC9] hover:text-blue-400">
+                <Link
+                  href="/signup"
+                  className="font-medium text-[#739EC9] hover:text-blue-400"
+                >
                   Sign up
                 </Link>
               </>
             ) : (
               <>
                 If you have an account{" "}
-                <Link href="/signin" className="font-medium text-[#739EC9] hover:text-blue-400">
+                <Link
+                  href="/signin"
+                  className="font-medium text-[#739EC9] hover:text-blue-400"
+                >
                   Sign in
                 </Link>
               </>
@@ -104,7 +110,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
         <form className=" mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#D3DAD9]">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-[#D3DAD9]"
+              >
                 Email adress
               </label>
               <input
@@ -120,7 +129,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#D3DAD9] ">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-[#D3DAD9] "
+              >
                 Password
               </label>
               <input
@@ -138,7 +150,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
             {!isLogin && (
               <div>
-                <label htmlFor="confirmPassword " className="block text-sm font-medium text-[#D3DAD9]">
+                <label
+                  htmlFor="confirmPassword "
+                  className="block text-sm font-medium text-[#D3DAD9]"
+                >
                   Confirm Password
                 </label>
                 <input
@@ -204,7 +219,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#739EC9] hover:bg-[#5D88B3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#739EC9] focus:ring-offset-[#37353E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#715A5A] hover:bg-[#553d3d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#739EC9] focus:ring-offset-[#37353E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
             >
               {loading && (
                 <svg
