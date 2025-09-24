@@ -10,10 +10,10 @@ export default function Home() {
       </p>
       <div className="flex gap-6 mt-10">
         <Link
-          href="/signin"
+          href="/chat"
           className="px-6 py-2 bg-[#715A5A] text-white rounded-lg shadow hover:bg-[#645454] transition"
         >
-          Sign In
+          Chat now
         </Link>
         <Link
           href="/signup"

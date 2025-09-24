@@ -12,28 +12,48 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatBox() {
+export default function ChatBox({ sessionUserId }: { sessionUserId: string }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Scroll container ref
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = async () => {
-    const result = await signOut();
-    if (result.success) {
-      router.push("/signin");
+  // Scroll to bottom using container.scrollTo
+  const scrollToBottom = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    loadMessageHistory();
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleLogout = async () => {
+    const result = await signOut();
+    if (result.success) window.location.href = "/";
+  };
+
+  const loadMessageHistory = async () => {
+    try {
+      const response = await fetch("/api/messages");
+      if (!response.ok) throw new Error("Failed to load messages");
+      const data = await response.json();
+      setMessages(data.messages || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +66,6 @@ export default function ChatBox() {
       timestamp: new Date(),
     };
 
-    // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
     const messageContent = inputMessage.trim();
     setInputMessage("");
@@ -54,105 +73,82 @@ export default function ChatBox() {
     setError(null);
 
     try {
-      // Call API endpoint
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(msg => ({
+          messages: [...messages, userMessage].map((msg) => ({
             role: msg.role,
-            content: msg.content
-          }))
+            content: msg.content,
+          })),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
+        throw new Error(errorData.error || "Chat API error");
       }
 
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No response body reader");
-      }
+      if (!reader) throw new Error("No response body reader");
 
       const decoder = new TextDecoder();
       let aiMessageContent = "";
       const aiMessageId = (Date.now() + 1).toString();
 
-      // Add empty AI message
-      setMessages(prev => [...prev, {
-        id: aiMessageId,
-        content: "",
-        role: "assistant",
-        timestamp: new Date(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: aiMessageId,
+          content: "",
+          role: "assistant",
+          timestamp: new Date(),
+        },
+      ]);
 
-      // Check content-type to determine parsing strategy
-      const contentType = response.headers.get('content-type');
-      
-      if (contentType?.includes('text/event-stream')) {
-        // SSE format parsing
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataStr = line.slice(6).trim();
-              if (dataStr === '[DONE]') break;
-              
-              try {
-                const data = JSON.parse(dataStr);
-                if (data.choices?.[0]?.delta?.content) {
-                  const newContent = data.choices[0].delta.content;
-                  aiMessageContent += newContent;
-                  
-                  setMessages(prev => 
-                    prev.map(msg => 
-                      msg.id === aiMessageId 
-                        ? { ...msg, content: aiMessageContent }
-                        : msg
-                    )
-                  );
-                }
-              } catch (e) {
-                // Ignore parse errors
-              }
-            }
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              const delta = parsed?.choices?.[0]?.delta?.content;
+              if (delta) aiMessageContent += delta;
+            } catch {}
+          } else {
+            aiMessageContent += chunk;
           }
         }
-      } else {
-        // Raw text streaming (current situation)
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          aiMessageContent += chunk;
-          
-          // Update AI message with new content
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === aiMessageId 
-                ? { ...msg, content: aiMessageContent }
-                : msg
-            )
-          );
-        }
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiMessageId ? { ...msg, content: aiMessageContent } : msg
+          )
+        );
       }
 
+      await fetch("/api/saveMessage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: sessionUserId,
+          content: aiMessageContent,
+          role: "assistant",
+        }),
+      });
     } catch (error) {
-      console.error("Chat error:", error);
+      console.error(error);
       setError(error instanceof Error ? error.message : "An error occurred");
-      
-      // Remove user message on error and restore input
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
       setInputMessage(messageContent);
     } finally {
       setIsLoading(false);
@@ -178,7 +174,10 @@ export default function ChatBox() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 ">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 p-4 space-y-4 overflow-y-auto scrollbar"
+      >
         {messages.length === 0 ? (
           <div className=" text-center text-[#8B8994]">
             <p>Send message to get started.</p>
@@ -187,23 +186,6 @@ export default function ChatBox() {
           messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))
-        )}        
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-[#4A4855] text-[#D3DAD9] rounded-lg px-4 py-2 max-w-xs">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-[#739EC9] rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-[#739EC9] rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-[#739EC9] rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-            </div>
-          </div>
         )}
 
         {error && (
@@ -219,9 +201,10 @@ export default function ChatBox() {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
+
       <div className="p-4">
         <form onSubmit={handleSendMessage} className="flex space-x-4 ">
           <input
