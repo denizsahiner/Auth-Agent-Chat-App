@@ -1,9 +1,10 @@
 import { createClient } from "./supabase/client";
+import { User } from '@supabase/supabase-js';
 
 export interface AuthResult {
   success: boolean;
   error?: string;
-  user?: any;
+  user?: User | null;
 }
 
 // Get browser client
@@ -88,7 +89,7 @@ export async function getUser() {
 }
 
 // Auth state changes
-export function onAuthStateChange(callback: (user: any) => void) {
+export function onAuthStateChange(callback: (user: User | null) => void) {
   return supabase.auth.onAuthStateChange((event, session) => {
     callback(session?.user || null);
   });

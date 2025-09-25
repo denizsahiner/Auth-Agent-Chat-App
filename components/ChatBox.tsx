@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import MessageBubble from "./MessageBubble";
 import { signOut } from "@/lib/auth";
-import { useRouter } from "next/navigation";
 
 interface Message {
   id: string;

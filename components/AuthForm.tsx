@@ -69,8 +69,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
       } else {
         setError(result.error || "An error occured");
       }
-    } catch (_err) {
-      setError("An error occured");
+    } catch (err) {
+      console.error("An error occured",err);
     }
     setLoading(false);
   };

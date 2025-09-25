@@ -44,7 +44,7 @@ export async function saveMessage(
   }
 }
 
-export async function getMessages(userId: String): Promise<Message[]> {
+export async function getMessages(userId: string): Promise<Message[]> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
