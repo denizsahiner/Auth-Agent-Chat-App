@@ -13,7 +13,6 @@ interface Message {
 }
 
 export default function ChatBox({ sessionUserId }: { sessionUserId: string }) {
-  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [inputMessage, setInputMessage] = useState("");

@@ -1,4 +1,4 @@
-import { createClient } from './supabase/client'
+import { createClient } from "./supabase/client";
 
 export interface AuthResult {
   success: boolean;
@@ -7,7 +7,7 @@ export interface AuthResult {
 }
 
 // Get browser client
-const supabase = createClient()
+const supabase = createClient();
 
 // Sign up function
 export async function signUp(

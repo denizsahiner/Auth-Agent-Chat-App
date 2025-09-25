@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
 
     // 3. Orijinal stream’i clone et ve content yakala
     const reader = streamResponse.body!.getReader();
-    const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
     let fullAIResponse = "";
