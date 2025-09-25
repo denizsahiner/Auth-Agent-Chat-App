@@ -37,7 +37,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/signin', req.url))
   }
 
-  if (req.nextUrl.pathname.startsWith('/auth') && session) {
+  if ((req.nextUrl.pathname === "/signin" || req.nextUrl.pathname === "/signup") && session) {
     return NextResponse.redirect(new URL('/chat', req.url))
   }
 
@@ -45,5 +45,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat/:path*', '/auth/:path*']
+  matcher: ['/chat/:path*', '/signin','/signup']
 }
