@@ -156,7 +156,7 @@ export default function ChatBox({ sessionUserId }: { sessionUserId: string }) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage(e as any);
+      handleSendMessage(e);
     }
   };
 

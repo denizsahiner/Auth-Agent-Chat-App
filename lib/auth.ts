@@ -1,5 +1,5 @@
 import { createClient } from "./supabase/client";
-import { User } from '@supabase/supabase-js';
+import { User } from "@supabase/supabase-js";
 
 export interface AuthResult {
   success: boolean;
@@ -30,6 +30,7 @@ export async function signUp(
 
     return { success: true, user: data.user };
   } catch (error) {
+    console.error("an error occured", error);
     return { success: false, error: "An error occured" };
   }
 }
@@ -51,6 +52,7 @@ export async function signIn(
 
     return { success: true, user: data.user };
   } catch (error) {
+    console.error("an error occured", error);
     return { success: false, error: "An error occured while logging in." };
   }
 }
@@ -65,6 +67,8 @@ export async function signOut(): Promise<AuthResult> {
     }
     return { success: true };
   } catch (error) {
+    console.error("an error occured", error);
+
     return { success: false, error: "An error occured while logging out." };
   }
 }

@@ -70,7 +70,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         setError(result.error || "An error occured");
       }
     } catch (err) {
-      console.error("An error occured",err);
+      console.error("An error occured", err);
     }
     setLoading(false);
   };
@@ -85,7 +85,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <p className="mt-2 text-center text-sm text-[#D3DAD9] ">
             {isLogin ? (
               <>
-                Don't you have an account?{" "}
+                Don&apos;t you have an account?{" "}
                 <Link
                   href="/signup"
                   className="font-medium text-[#739EC9] hover:text-blue-400"
